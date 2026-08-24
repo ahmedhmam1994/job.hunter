@@ -1,0 +1,8 @@
+customtkinter
+requests
+beautifulsoup4
+lxml
+rapidfuzz
+pyperclip
+pdfplumber
+python-docx

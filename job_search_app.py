@@ -70,10 +70,12 @@ class JobHunterApp(ctk.CTk):
         self.tabview = tabs
         self.tab_search = tabs.add("Search")
         self.tab_tracker = tabs.add("Tracker")
+        self.tab_favorites = tabs.add("Favorites")
         self.tab_stats = tabs.add("Stats")
 
         self._build_search_tab()
         self._build_tracker_tab()
+        self._build_favorites_tab()
         self._build_stats_tab()
 
     # ================= HEADER =================
@@ -294,6 +296,10 @@ class JobHunterApp(ctk.CTk):
         ctk.CTkButton(bar, text="Export CSV", width=110, height=32, corner_radius=6,
                       fg_color=SURFACE_ALT, hover_color=BORDER, text_color=TEXT,
                       command=self.export_csv).pack(side="left")
+        self.followup_badge = ctk.CTkLabel(bar, text="", font=("Segoe UI", 11, "bold"),
+                                           text_color="#0f172a", corner_radius=10,
+                                           fg_color=WARNING, padx=10, height=24)
+        self.followup_badge.pack(side="left", padx=(12, 0))
 
         self.tracker_frame = ctk.CTkScrollableFrame(self.tab_tracker, fg_color="transparent")
         self.tracker_frame.pack(fill="both", expand=True)
@@ -302,6 +308,13 @@ class JobHunterApp(ctk.CTk):
     def refresh_tracker(self):
         if not hasattr(self, "tracker_frame"):
             return
+        due = database.due_followups()
+        if due:
+            self.followup_badge.configure(
+                text=f"{len(due)} follow-up{'s' if len(due) > 1 else ''} due")
+            self.followup_badge.pack(side="left", padx=(12, 0))
+        else:
+            self.followup_badge.pack_forget()
         for w in self.tracker_frame.winfo_children():
             w.destroy()
         apps = database.all_applications()
@@ -350,6 +363,73 @@ class JobHunterApp(ctk.CTk):
                         "Applied", "Follow-up", "Link"])
             w.writerows([a[1:8] for a in database.all_applications()])
         mb.showinfo("Export", "Exported successfully.")
+
+    # ================= FAVORITES TAB =================
+    def _build_favorites_tab(self):
+        bar = ctk.CTkFrame(self.tab_favorites, fg_color="transparent")
+        bar.pack(fill="x", pady=10)
+        ctk.CTkButton(bar, text="Refresh", width=100, height=32, corner_radius=6,
+                      fg_color=SURFACE_ALT, hover_color=BORDER, text_color=TEXT,
+                      command=self.refresh_favorites).pack(side="left")
+
+        self.favorites_frame = ctk.CTkScrollableFrame(self.tab_favorites, fg_color="transparent")
+        self.favorites_frame.pack(fill="both", expand=True)
+        self.refresh_favorites()
+
+    def refresh_favorites(self):
+        if not hasattr(self, "favorites_frame"):
+            return
+        for w in self.favorites_frame.winfo_children():
+            w.destroy()
+        favorites = database.all_favorites()
+        if not favorites:
+            ctk.CTkLabel(self.favorites_frame, text="No saved jobs yet — hit Save on a result!",
+                        font=FONT_BODY, text_color=TEXT_DIM).pack(pady=24)
+            return
+        for job in favorites:
+            self.add_favorite_card(job)
+
+    def add_favorite_card(self, job):
+        # Same left-to-right/top-to-bottom flow as add_result_card, for the
+        # same CTkScrollableFrame reason (see Observation 4 in this project's
+        # skill-observations log): never anchor content to the right edge here.
+        card = ctk.CTkFrame(self.favorites_frame, fg_color=CARD, corner_radius=12,
+                            border_width=1, border_color=BORDER)
+        card.pack(fill="x", pady=6, padx=2)
+
+        ctk.CTkFrame(card, fg_color=ACCENT, corner_radius=0,
+                     width=4, height=1).pack(side="left", fill="y")
+
+        body = ctk.CTkFrame(card, fg_color="transparent")
+        body.pack(side="left", fill="both", expand=True, padx=14, pady=12)
+
+        header_row = ctk.CTkFrame(body, fg_color="transparent")
+        header_row.pack(fill="x", anchor="w")
+
+        icon = self.site_icon(job["site"])
+        if icon:
+            ctk.CTkLabel(header_row, image=icon, text="").pack(side="left", padx=(0, 8))
+        ctk.CTkLabel(header_row, text=job["title"], font=FONT_CARD_TITLE,
+                     text_color=TEXT, anchor="w").pack(side="left")
+
+        ctk.CTkLabel(body, text=f"{job['company']}  ·  {job['location']}  ·  {job['site']}",
+                     font=FONT_BODY, text_color=TEXT_DIM, anchor="w").pack(anchor="w", pady=(4, 0))
+
+        actions = ctk.CTkFrame(body, fg_color="transparent")
+        actions.pack(anchor="w", pady=(10, 0))
+        ctk.CTkButton(actions, text="Apply", width=90, height=30, corner_radius=6,
+                      fg_color=ACCENT, hover_color=ACCENT_HOVER,
+                      command=lambda j=job: self.quick_apply(j)).pack(side="left", padx=(0, 6))
+        ctk.CTkButton(actions, text="Open", width=90, height=30, corner_radius=6,
+                      fg_color=SURFACE_ALT, hover_color=BORDER, text_color=TEXT,
+                      command=lambda u=job["link"]: webbrowser.open(u)).pack(side="left", padx=(0, 6))
+        ctk.CTkButton(actions, text="Remove", width=90, height=30, corner_radius=6,
+                      fg_color=SURFACE_ALT, hover_color=DANGER, text_color=TEXT,
+                      command=lambda j=job: self.remove_favorite(j)).pack(side="left")
+
+    def remove_favorite(self, job):
+        database.toggle_favorite(job)
+        self.refresh_favorites()
 
     # ================= STATS TAB =================
     def _build_stats_tab(self):

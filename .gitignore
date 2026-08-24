@@ -11,3 +11,4 @@ google-services.json
 cv_storage/
 dist/
 build/
+.icon_cache/

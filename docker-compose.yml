@@ -10,6 +10,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - ADMIN_KEY=${ADMIN_KEY}
+      - SESSION_SECRET=${SESSION_SECRET}
       - DATA_DIR=/app/data
       - FIREBASE_KEY=/run/secrets/firebase_key
     volumes:

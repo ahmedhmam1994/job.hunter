@@ -2,13 +2,14 @@
 Run locally:  uvicorn server:app --reload --port 8000
 Run docker:   docker compose up -d --build
 """
-import os, shutil, sqlite3, threading
+import os, secrets, shutil, sqlite3, threading
 from typing import Optional
 from pydantic import BaseModel
 from fastapi import FastAPI, Depends, Header, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 
 import scrapers, matcher, cv_parser, database, users_db
+from ratelimit import rate_limit
 
 ADMIN_KEY = os.environ.get("ADMIN_KEY", "")
 
@@ -31,7 +32,7 @@ def auth(api_key: str = Header(..., alias="X-API-Key")) -> dict:
 
 
 def require_admin(x_admin_key: str = Header(...)):
-    if not ADMIN_KEY or x_admin_key != ADMIN_KEY:
+    if not ADMIN_KEY or not secrets.compare_digest(x_admin_key, ADMIN_KEY):
         raise HTTPException(403, "Admin access denied")
 
 
@@ -47,7 +48,7 @@ class RegisterReq(BaseModel):
     name: str
     email: str
 
-@app.post("/register")
+@app.post("/register", dependencies=[Depends(rate_limit("register", limit=5, window_seconds=3600))])
 def register(req: RegisterReq):
     key = users_db.create_user(req.name, req.email)
     return {"api_key": key}

@@ -1,18 +1,37 @@
 """Web admin panel — mount via routes included in server.py."""
-from fastapi import APIRouter, Request, Form, HTTPException
+import os
+import secrets
+
+from fastapi import APIRouter, Depends, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-import os
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
+
 import users_db
 from notifications import send_to_many
+from ratelimit import rate_limit
 
 router = APIRouter(prefix="/panel")
 templates = Jinja2Templates(directory="admin_ui/templates")
 ADMIN_KEY = os.environ.get("ADMIN_KEY", "")
 
+# Signs the session cookie so it never carries the raw admin key. Falls back to
+# a random per-process secret if unset — sessions just won't survive a restart.
+SESSION_SECRET = os.environ.get("SESSION_SECRET") or secrets.token_hex(32)
+if not os.environ.get("SESSION_SECRET"):
+    print("(SESSION_SECRET not set — using a random per-process secret; "
+          "admin sessions will not survive a restart)")
+_serializer = URLSafeTimedSerializer(SESSION_SECRET, salt="admin-panel-session")
+SESSION_MAX_AGE = 8 * 60 * 60  # 8 hours
+
 
 def guard(request: Request):
-    if request.cookies.get("admin_session") != ADMIN_KEY or not ADMIN_KEY:
+    token = request.cookies.get("admin_session")
+    if not ADMIN_KEY or not token:
+        raise HTTPException(303, headers={"Location": "/panel/login"})
+    try:
+        _serializer.loads(token, max_age=SESSION_MAX_AGE)
+    except (BadSignature, SignatureExpired):
         raise HTTPException(303, headers={"Location": "/panel/login"})
 
 
@@ -22,13 +41,15 @@ def login_page(request: Request):
         "dashboard.html", {"request": request, "view": "login", "error": False})
 
 
-@router.post("/login")
+@router.post("/login", dependencies=[Depends(rate_limit("admin_login", limit=5, window_seconds=300))])
 def do_login(request: Request, key: str = Form(...)):
-    if key != ADMIN_KEY:
+    if not ADMIN_KEY or not secrets.compare_digest(key, ADMIN_KEY):
         return templates.TemplateResponse(
             "dashboard.html", {"request": request, "view": "login", "error": True})
+    token = _serializer.dumps({"admin": True})
     resp = RedirectResponse("/panel/", status_code=303)
-    resp.set_cookie("admin_session", key, httponly=True, samesite="lax")
+    resp.set_cookie("admin_session", token, httponly=True, samesite="lax",
+                    max_age=SESSION_MAX_AGE)
     return resp
 
 

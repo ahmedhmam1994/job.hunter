@@ -210,6 +210,10 @@ class JobHunterApp(ctk.CTk):
         score = job.get("score")
         accent = matcher.color_for(score) if score is not None else ACCENT
 
+        # NOTE: this card lives inside a CTkScrollableFrame. pack(side="right")
+        # content there gets silently clipped (its logical width doesn't match
+        # the visible viewport) — so everything here flows left-to-right/
+        # top-to-bottom instead of anchoring anything to the right edge.
         card = ctk.CTkFrame(self.results_frame, fg_color=CARD, corner_radius=12,
                             border_width=1, border_color=BORDER)
         card.pack(fill="x", pady=6, padx=2)
@@ -221,7 +225,7 @@ class JobHunterApp(ctk.CTk):
         body.pack(side="left", fill="both", expand=True, padx=14, pady=12)
 
         header_row = ctk.CTkFrame(body, fg_color="transparent")
-        header_row.pack(fill="x")
+        header_row.pack(fill="x", anchor="w")
 
         icon = self.site_icon(job["site"])
         if icon:
@@ -234,7 +238,7 @@ class JobHunterApp(ctk.CTk):
             badge = ctk.CTkLabel(header_row, text=f"{score}% match", font=("Segoe UI", 11, "bold"),
                                  text_color="#0f172a", fg_color=accent, corner_radius=10,
                                  width=90, height=22)
-            badge.pack(side="right")
+            badge.pack(side="left", padx=(10, 0))
 
         ctk.CTkLabel(body, text=f"{job['company']}  ·  {job['location']}  ·  {job['site']}",
                      font=FONT_BODY, text_color=TEXT_DIM, anchor="w").pack(anchor="w", pady=(4, 0))
@@ -248,18 +252,18 @@ class JobHunterApp(ctk.CTk):
                             fg_color=SURFACE_ALT, corner_radius=8,
                             padx=8, pady=2).pack(side="left", padx=(0, 6))
 
-        actions = ctk.CTkFrame(card, fg_color="transparent")
-        actions.pack(side="right", padx=14, pady=12)
+        actions = ctk.CTkFrame(body, fg_color="transparent")
+        actions.pack(anchor="w", pady=(10, 0))
         ctk.CTkButton(actions, text="Apply", width=90, height=30, corner_radius=6,
                       fg_color=ACCENT, hover_color=ACCENT_HOVER,
-                      command=lambda j=job: self.quick_apply(j)).pack(pady=2)
+                      command=lambda j=job: self.quick_apply(j)).pack(side="left", padx=(0, 6))
         ctk.CTkButton(actions, text="Open", width=90, height=30, corner_radius=6,
                       fg_color=SURFACE_ALT, hover_color=BORDER, text_color=TEXT,
-                      command=lambda u=job["link"]: webbrowser.open(u)).pack(pady=2)
+                      command=lambda u=job["link"]: webbrowser.open(u)).pack(side="left", padx=(0, 6))
         fav_btn = ctk.CTkButton(actions, text="Save", width=90, height=30, corner_radius=6,
                                 fg_color=SURFACE_ALT, hover_color=BORDER, text_color=TEXT)
         fav_btn.configure(command=lambda j=job, btn=fav_btn: self.toggle_fav(j, btn))
-        fav_btn.pack(pady=2)
+        fav_btn.pack(side="left")
 
     def quick_apply(self, job):
         letter = apply_to_job(self.profile, job) if self.profile else None
@@ -319,6 +323,8 @@ class JobHunterApp(ctk.CTk):
                          text=f"{title} @ {comp}  ·  {site}\n"
                               f"Applied {str(applied)[:10]}   Follow-up {str(followup)[:10]}"
                          ).pack(side="left", padx=10)
+            # side="left", not "right": this row lives in a CTkScrollableFrame,
+            # where right-packed content is silently clipped (see Observation 4).
             menu = ctk.CTkOptionMenu(row, values=database.STATUSES, width=150, height=28,
                                      corner_radius=6, fg_color=ACCENT, button_color=ACCENT,
                                      button_hover_color=ACCENT_HOVER,
@@ -326,7 +332,7 @@ class JobHunterApp(ctk.CTk):
                                      (database.update_status(l, s),
                                       self.refresh_tracker()))
             menu.set(status)
-            menu.pack(side="right", padx=10)
+            menu.pack(side="left", padx=10, pady=10)
 
     def export_csv(self):
         import csv

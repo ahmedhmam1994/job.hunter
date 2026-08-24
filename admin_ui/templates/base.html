@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Job Hunter Admin</title>
+<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+body{background:#0f172a;color:#e2e8f0;font-family:system-ui}
+.card{background:#1e293b;border-radius:14px;padding:18px}
+.btn{border-radius:8px;padding:6px 14px;cursor:pointer;border:none;font-weight:600}
+table{width:100%;border-collapse:collapse}td,th{padding:9px 12px;text-align:left}
+tr:hover{background:#26334d}
+input,textarea{background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:7px 10px}
+.badge{border-radius:99px;padding:3px 11px;font-size:12px;font-weight:700}
+</style>
+</head>
+<body class="p-6">{% block content %}{% endblock %}</body>
+</html>

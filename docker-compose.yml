@@ -1,0 +1,25 @@
+version: "3.8"
+
+services:
+  api:
+    build: .
+    container_name: jobhunter-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - ADMIN_KEY=${ADMIN_KEY}
+      - DATA_DIR=/app/data
+      - FIREBASE_KEY=/run/secrets/firebase_key
+    volumes:
+      - db-data:/app/data
+      - ./firebase-service-account.json:/run/secrets/firebase_key:ro
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/ || true"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  db-data:

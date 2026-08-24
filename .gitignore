@@ -1,5 +1,13 @@
 __pycache__/
 *.pyc
+*.db
+*.db-journal
 job_hunter.db
 .venv/
 venv/
+.env
+firebase-service-account.json
+google-services.json
+cv_storage/
+dist/
+build/

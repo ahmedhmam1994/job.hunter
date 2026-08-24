@@ -1,0 +1,19 @@
+{% for u in users %}
+<tr id="user-{{ u.id }}">
+  <td><span class="badge {{ 'bg-green-900 text-green-300' if u.is_active else 'bg-red-900 text-red-300' }}">{{ 'ACTIVE' if u.is_active else 'DISABLED' }}</span></td>
+  <td>{{ u.email }} {% if u.has_device %}(device){% endif %}<br><span class="text-slate-500 text-xs">#{{ u.id }} - since {{ u.created_at[:10] }}</span></td>
+  <td>
+    <form hx-post="/panel/users/{{ u.id }}/min_score" hx-target="#user-{{ u.id }}" hx-swap="outerHTML">
+      <input type="number" name="min_score" value="{{ u.min_score }}" min="20" max="95" class="w-16 !py-1 text-sm">
+    </form>
+  </td>
+  <td>{{ u.queries }}</td>
+  <td class="whitespace-nowrap">
+    <button hx-post="/panel/users/{{ u.id }}/toggle" hx-target="#user-{{ u.id }}" hx-swap="outerHTML"
+      class="btn {{ 'bg-yellow-600' if u.is_active else 'bg-green-600' }} text-white text-sm">
+      {{ 'Disable' if u.is_active else 'Enable' }}</button>
+    <button hx-delete="/panel/users/{{ u.id }}" hx-target="#user-{{ u.id }}" hx-swap="outerHTML"
+      hx-confirm="Delete {{ u.email }} permanently?" class="btn bg-red-700 text-white text-sm">Delete</button>
+  </td>
+</tr>
+{% endfor %}

@@ -67,6 +67,7 @@ class JobHunterApp(ctk.CTk):
                               segmented_button_unselected_color=SURFACE,
                               text_color=TEXT)
         tabs.pack(fill="both", expand=True, padx=16, pady=(4, 16))
+        self.tabview = tabs
         self.tab_search = tabs.add("Search")
         self.tab_tracker = tabs.add("Tracker")
         self.tab_stats = tabs.add("Stats")
@@ -218,8 +219,11 @@ class JobHunterApp(ctk.CTk):
                             border_width=1, border_color=BORDER)
         card.pack(fill="x", pady=6, padx=2)
 
+        # height=1 overrides CTkFrame's default height (200, scaled by DPI) —
+        # without it, fill="y" stretches the whole row to match that default
+        # instead of shrinking the bar to the row's actual content height.
         ctk.CTkFrame(card, fg_color=accent, corner_radius=0,
-                     width=4).pack(side="left", fill="y")
+                     width=4, height=1).pack(side="left", fill="y")
 
         body = ctk.CTkFrame(card, fg_color="transparent")
         body.pack(side="left", fill="both", expand=True, padx=14, pady=12)
@@ -310,7 +314,7 @@ class JobHunterApp(ctk.CTk):
             row = ctk.CTkFrame(self.tracker_frame, fg_color=CARD, corner_radius=10,
                                border_width=1, border_color=BORDER)
             row.pack(fill="x", pady=4, padx=2)
-            ctk.CTkFrame(row, fg_color=color, width=4).pack(side="left", fill="y")
+            ctk.CTkFrame(row, fg_color=color, width=4, height=1).pack(side="left", fill="y")
 
             icon = self.site_icon(site)
             if icon:

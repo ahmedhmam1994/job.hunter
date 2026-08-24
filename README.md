@@ -7,12 +7,23 @@ A job-hunting toolkit with two parts:
 
 ## Desktop app
 
+Run from source:
+
 ```
 pip install -r requirements.txt
 python job_search_app.py
 ```
 
+Or build a standalone Windows `.exe` (no Python install needed to run it):
+
+```
+.\build_exe.ps1
+# produces dist\JobHunter.exe
+```
+
 - `job_search_app.py` — main desktop UI (Search / Tracker / Stats tabs)
+- `JobHunter.spec` — PyInstaller build config for the standalone `.exe`
+- `build_exe.ps1` — installs deps and runs PyInstaller
 - `scrapers.py` — fetches jobs from Wuzzuf, Glassdoor, Indeed, Remotive, WeWorkRemotely, RemoteOK
 - `cv_parser.py` — extracts skills and years of experience from a PDF/DOCX CV
 - `matcher.py` — fuzzy-matches scraped jobs against the parsed CV profile

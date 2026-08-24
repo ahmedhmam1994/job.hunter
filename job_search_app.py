@@ -54,7 +54,8 @@ class JobHunterApp(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("Job Hunter")
-        self.geometry("1160x760")
+        self.geometry("1320x760")
+        self.minsize(1160, 600)
         self.configure(fg_color=BG)
         self.profile = None
         self._icon_cache = {}
@@ -121,6 +122,13 @@ class JobHunterApp(ctk.CTk):
         self.site_menu.pack(side="left", padx=6)
         self.site_menu.set("All sites")
 
+        self.country_menu = ctk.CTkOptionMenu(
+            row1, values=scrapers.COUNTRIES,
+            width=170, height=36, corner_radius=8,
+            fg_color=ACCENT, button_color=ACCENT, button_hover_color=ACCENT_HOVER)
+        self.country_menu.pack(side="left", padx=6)
+        self.country_menu.set("Any")
+
         self.remote_var = ctk.BooleanVar(value=False)
         ctk.CTkSwitch(row1, text="Remote only", variable=self.remote_var,
                       progress_color=ACCENT, text_color=TEXT).pack(side="left", padx=14)
@@ -176,16 +184,17 @@ class JobHunterApp(ctk.CTk):
             sites = [self.site_menu.get()]
         if self.remote_var.get():
             remote_sites = [s for s in sites if s in
-                            ("Remotive", "RemoteOK", "WeWorkRemotely")]
+                            ("Remotive", "RemoteOK", "WeWorkRemotely", "Arbeitnow", "Jobicy")]
             sites = remote_sites or ["Remotive", "RemoteOK"]
+        country = self.country_menu.get()
 
         self.status_lbl.configure(text=f"Searching '{query}' on "
                                        f"{len(sites)} site(s)...")
         threading.Thread(target=self._search_worker,
-                         args=(query, sites), daemon=True).start()
+                         args=(query, sites, country), daemon=True).start()
 
-    def _search_worker(self, query, sites):
-        jobs = scrapers.fetch_all(sites, query)
+    def _search_worker(self, query, sites, country):
+        jobs = scrapers.fetch_all(sites, query, country)
         if self.profile:
             jobs = matcher.rank_jobs(jobs, self.profile)
             thresh = int(self.thresh_slider.get())

@@ -3,12 +3,18 @@ import os
 import firebase_admin
 from firebase_admin import credentials, messaging
 
-_cred = credentials.Certificate(
-    os.environ.get("FIREBASE_KEY", "firebase-service-account.json"))
-firebase_admin.initialize_app(_cred)
+_key_path = os.environ.get("FIREBASE_KEY", "firebase-service-account.json")
+try:
+    firebase_admin.initialize_app(credentials.Certificate(_key_path))
+    _enabled = True
+except Exception as e:
+    print(f"(push notifications disabled: {e})")
+    _enabled = False
 
 
 def send_push(token: str, title: str, body: str, data: dict | None = None) -> bool:
+    if not _enabled:
+        return False
     try:
         messaging.send(messaging.Message(
             token=token,

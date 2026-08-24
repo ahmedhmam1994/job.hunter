@@ -7,6 +7,27 @@ HEADERS = {"User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                           "AppleWebKit/537.36 Chrome/120 Safari/537.36"),
            "Accept-Language": "en-US,en;q=0.9"}
 
+# Glassdoor and Indeed serve challenge/near-empty pages to plain HTTP clients
+# (Cloudflare/PerimeterX-style bot detection) — a real requests.get() to them
+# often returns 0 results with no error. Rendering with a real (headless)
+# browser gets past that basic check, at the cost of a slower, heavier request.
+RENDERED_SITES = {"Glassdoor", "Indeed"}
+
+
+def _fetch_rendered_html(url: str) -> str:
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as p:
+        browser = p.chromium.launch(
+            headless=True, args=["--disable-blink-features=AutomationControlled"])
+        try:
+            page = browser.new_page(user_agent=HEADERS["User-Agent"],
+                                    viewport={"width": 1366, "height": 900})
+            page.goto(url, timeout=30000, wait_until="domcontentloaded")
+            page.wait_for_timeout(2500)  # let client-side rendering settle
+            return page.content()
+        finally:
+            browser.close()
+
 SITES = {
     "Wuzzuf":         lambda q: f"https://wuzzuf.net/search/jobs/?q={quote(q)}",
     "Glassdoor":      lambda q: f"https://www.glassdoor.com/Job/jobs.htm?sc.keyword={quote(q)}",
@@ -31,8 +52,11 @@ def fetch_jobs(site: str, query: str) -> list[dict]:
                                 "site": site})
         return results[:15]
 
-    resp = requests.get(url, headers=HEADERS, timeout=25)
-    soup = BeautifulSoup(resp.text, "lxml")
+    if site in RENDERED_SITES:
+        soup = BeautifulSoup(_fetch_rendered_html(url), "lxml")
+    else:
+        resp = requests.get(url, headers=HEADERS, timeout=25)
+        soup = BeautifulSoup(resp.text, "lxml")
 
     if site == "Remotive":
         data = resp.json().get("jobs", [])
@@ -58,26 +82,29 @@ def fetch_jobs(site: str, query: str) -> list[dict]:
     elif site == "Glassdoor":
         for card in soup.select("[data-test='jobListing']")[:15]:
             t = card.select_one("[data-test='job-title']")
-            comp = card.select_one("[data-test='employer-name']")
-            link = card.select_one("a[href]")
+            comp = card.select_one("[class*='EmployerName']")
+            loc = card.select_one("[data-test='emp-location']")
+            link = card.select_one("a[data-test='job-title']")
             if t and link:
+                href = link.get("href", "")
                 results.append({"title": t.get_text(strip=True),
                                 "company": comp.get_text(strip=True) if comp else "",
-                                "location": "",
-                                "link": "https://www.glassdoor.com" + link.get("href", ""),
+                                "location": loc.get_text(strip=True) if loc else "",
+                                "link": href if href.startswith("http") else "https://www.glassdoor.com" + href,
                                 "site": site})
 
     elif site == "Indeed":
         for card in soup.select("div.job_seen_beacon")[:15]:
-            t = card.select_one("h2.jobTitle span")
+            t = card.select_one("span[id^='jobTitle-']")
             comp = card.select_one("[data-testid='company-name']")
             loc = card.select_one("[data-testid='text-location']")
-            link = card.select_one("a[href]")
+            link = card.select_one("a.jcs-JobTitle[href]")
             if t and link:
+                href = link.get("href", "")
                 results.append({"title": t.get_text(strip=True),
                                 "company": comp.get_text(strip=True) if comp else "",
                                 "location": loc.get_text(strip=True) if loc else "",
-                                "link": "https://www.indeed.com" + link.get("href", ""),
+                                "link": href if href.startswith("http") else "https://www.indeed.com" + href,
                                 "site": site})
 
     elif site == "WeWorkRemotely":

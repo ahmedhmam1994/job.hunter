@@ -11,6 +11,7 @@ Run from source:
 
 ```
 pip install -r requirements.txt
+python -m playwright install chromium   # one-time: browser used to scrape Glassdoor/Indeed
 python job_search_app.py
 ```
 

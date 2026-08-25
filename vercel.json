@@ -1,0 +1,6 @@
+{
+  "buildCommand": false,
+  "installCommand": false,
+  "framework": null,
+  "outputDirectory": "website"
+}

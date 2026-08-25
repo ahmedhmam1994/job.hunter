@@ -11,7 +11,7 @@ HEADERS = {"User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
 # (Cloudflare/PerimeterX-style bot detection) — a real requests.get() to them
 # often returns 0 results with no error. Rendering with a real (headless)
 # browser gets past that basic check, at the cost of a slower, heavier request.
-RENDERED_SITES = {"Glassdoor", "Indeed"}
+RENDERED_SITES = {"Glassdoor", "Indeed", "Wuzzuf"}
 
 # Country filter: "Any" means no filtering at all. Indeed has real
 # country-specific subdomains that actually scope results server-side —
@@ -36,7 +36,10 @@ INDEED_DOMAINS = {
 }
 
 
-def _fetch_rendered_html(url: str) -> str:
+_CHALLENGE_TITLES = ("just a moment", "attention required", "checking your browser")
+
+
+def _fetch_rendered_html(url: str, max_challenge_wait_ms: int = 12000) -> str:
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         browser = p.chromium.launch(
@@ -45,7 +48,17 @@ def _fetch_rendered_html(url: str) -> str:
             page = browser.new_page(user_agent=HEADERS["User-Agent"],
                                     viewport={"width": 1366, "height": 900})
             page.goto(url, timeout=30000, wait_until="domcontentloaded")
-            page.wait_for_timeout(2500)  # let client-side rendering settle
+            # Cloudflare's managed/JS challenge ("Just a moment...") auto-resolves
+            # and redirects on its own after a few seconds — a fixed short wait
+            # (previously 2.5s) sometimes returned the challenge page itself
+            # instead of the real content. Poll the title instead of guessing.
+            waited = 0
+            step = 1000
+            while waited < max_challenge_wait_ms and any(
+                    t in page.title().strip().lower() for t in _CHALLENGE_TITLES):
+                page.wait_for_timeout(step)
+                waited += step
+            page.wait_for_timeout(1000)  # let post-challenge rendering settle
             return page.content()
         finally:
             browser.close()
@@ -115,18 +128,23 @@ def fetch_jobs(site: str, query: str, country: str | None = None) -> list[dict]:
                             "site": site})
 
     elif site == "Wuzzuf":
-        for card in soup.select("div.css-1gatmva")[:15]:
-            t = card.select_one("h2")
-            comp = card.select_one(".css-d7j1jk")
-            link = card.select_one("a")
-            loc = card.select_one(".css-5wly0z")
-            if t and link:
-                href = link.get("href", "")
-                results.append({"title": t.get_text(strip=True),
-                                "company": comp.get_text(strip=True) if comp else "",
-                                "location": loc.get_text(strip=True) if loc else "",
-                                "link": href if href.startswith("http") else "https://wuzzuf.net" + href,
-                                "site": site})
+        # Wuzzuf's CSS-module class names (css-xxxxxx) are build-time hashes
+        # that change on every redeploy, so selectors based on them go stale
+        # silently. Anchor on stable structural/URL patterns instead: job
+        # detail links always contain "/jobs/p/", employer links "/jobs/careers/".
+        for card in soup.select("div.css-pkv5jc")[:15]:
+            title_link = card.select_one("h2 a")
+            if not title_link:
+                continue
+            comp_candidates = card.select("a[href*='/jobs/careers/']")
+            comp_link = next((a for a in comp_candidates if a.get_text(strip=True)), None)
+            loc = comp_link.find_next_sibling("span") if comp_link else None
+            href = title_link.get("href", "")
+            results.append({"title": title_link.get_text(strip=True),
+                            "company": comp_link.get_text(strip=True).rstrip(" -").strip() if comp_link else "",
+                            "location": loc.get_text(" ", strip=True) if loc else "",
+                            "link": href if href.startswith("http") else "https://wuzzuf.net" + href,
+                            "site": site})
 
     elif site == "Glassdoor":
         for card in soup.select("[data-test='jobListing']")[:15]:
@@ -157,15 +175,16 @@ def fetch_jobs(site: str, query: str, country: str | None = None) -> list[dict]:
                                 "site": site})
 
     elif site == "WeWorkRemotely":
-        for card in soup.select("section li")[:15]:
-            t = card.select_one("span.title")
-            comp = card.select_one(".company")
-            link = card.find("a", href=True)
+        for card in soup.select("li.new-listing-container")[:15]:
+            t = card.select_one(".new-listing__header__title__text")
+            comp = card.select_one(".new-listing__company-name")
+            loc = card.select_one(".new-listing__company-headquarters")
+            link = card.select_one("a.listing-link--unlocked[href]")
             if t and link:
-                href = link["href"]
+                href = link.get("href", "")
                 results.append({"title": t.get_text(strip=True),
                                 "company": comp.get_text(strip=True) if comp else "",
-                                "location": "Remote",
+                                "location": loc.get_text(strip=True) if loc else "Remote",
                                 "link": href if href.startswith("http") else "https://weworkremotely.com" + href,
                                 "site": site})
 

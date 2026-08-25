@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Job Hunter — Search every job site at once</title>
+<meta name="description" content="Upload your CV once. Job Hunter searches 14 job sites, scores every listing against your CV, and tracks your applications — free, local, no account required.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Calistoga&family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#FAFAFA; --card:#FFFFFF; --muted:#F1F5F9; --border:#E2E8F0;
+    --fg:#0F172A; --dim:#475569; --dimmer:#94A3B8;
+    --accent:#0052FF; --accent2:#4D7CFF; --accent-pale:rgba(0,82,255,.08);
+    --success:#16A34A; --success-pale:#DCFCE7;
+    --warning:#D97706; --warning-pale:#FEF3C7;
+    --danger:#DC2626; --danger-pale:#FEE2E2;
+    --font-d:'Calistoga', serif; --font-b:'DM Sans', system-ui, sans-serif;
+    --font-m:'JetBrains Mono', ui-monospace, Consolas, monospace;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { background:var(--bg); color:var(--fg); font-family:var(--font-b); font-size:16px; line-height:1.6; }
+  ::selection { background:var(--accent); color:#fff; }
+  a { color:inherit; }
+  .wrap { max-width:1160px; margin:0 auto; padding:0 24px; }
+  .mono { font-family:var(--font-m); font-variant-numeric:tabular-nums; }
+  h1,h2,h3 { text-wrap:balance; }
+
+  /* ---------- nav ---------- */
+  nav { display:flex; align-items:center; justify-content:space-between; padding:24px 0; }
+  nav .brand { font-family:var(--font-d); font-size:18px; display:flex; align-items:center; gap:9px; }
+  nav .brand .dot { width:9px; height:9px; border-radius:50%; background:var(--accent); }
+  nav .links { display:flex; gap:30px; }
+  nav .links a { color:var(--dim); text-decoration:none; font-size:14px; font-weight:600; transition:color .2s; }
+  nav .links a:hover { color:var(--fg); }
+  nav .navright { display:flex; align-items:center; gap:20px; }
+  nav .login { font-size:14px; font-weight:700; color:var(--fg); text-decoration:none; }
+  .navcta { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; border:none; border-radius:999px; padding:11px 20px; font-weight:700; font-size:13.5px; cursor:pointer; font-family:var(--font-b); }
+  @media (max-width:820px) { nav .links { display:none; } }
+
+  /* ---------- eyebrow ---------- */
+  .eyebrow { display:inline-flex; align-items:center; gap:7px; background:var(--accent-pale); color:var(--accent); font-weight:700; font-size:12.5px; border-radius:999px; padding:7px 15px; }
+  .eyebrow .dot { width:6px; height:6px; border-radius:50%; background:var(--accent); }
+
+  /* ---------- hero ---------- */
+  .hero { padding:70px 0 40px; display:grid; grid-template-columns:1fr 1fr; gap:52px; align-items:center; }
+  .hero h1 { font-family:var(--font-d); font-size:clamp(32px,4.6vw,52px); line-height:1.14; margin:20px 0 18px; color:var(--fg); }
+  .hero h1 span { color:var(--accent); }
+  .hero p.lead { color:var(--dim); font-size:16px; margin-bottom:30px; max-width:440px; }
+  .actions { display:flex; gap:14px; flex-wrap:wrap; }
+  .btn { font-family:var(--font-b); font-weight:700; font-size:14.5px; cursor:pointer; border:none; border-radius:999px; padding:15px 27px; transition:transform .3s cubic-bezier(.2,.8,.2,1), box-shadow .3s ease; }
+  .btn-primary { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; box-shadow:0 12px 28px rgba(0,82,255,.28); }
+  .btn-primary:hover { transform:translateY(-2px); box-shadow:0 16px 34px rgba(0,82,255,.34); }
+  .btn-ghost { background:#fff; color:var(--fg); border:1px solid var(--border); }
+  .btn-ghost:hover { border-color:var(--dimmer); }
+
+  .visual { background:var(--card); border:1px solid var(--border); border-radius:24px; padding:22px; box-shadow:0 24px 60px rgba(15,23,42,.08); }
+  .visual .toprow { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+  .visual .toprow .t { font-size:12.5px; color:var(--dimmer); font-weight:600; }
+  .visual .toprow .live { font-size:11px; font-weight:700; color:var(--success); background:var(--success-pale); border-radius:999px; padding:4px 10px; }
+  .jobline { display:flex; justify-content:space-between; align-items:center; padding:14px 16px; border-radius:14px; background:var(--muted); margin-bottom:10px; }
+  .jobline .info .t { font-size:13.5px; font-weight:700; color:var(--fg); }
+  .jobline .info .m { font-size:11.5px; color:var(--dimmer); margin-top:2px; }
+  .pct { font-family:var(--font-m); font-weight:700; font-size:11.5px; border-radius:999px; padding:4px 11px; }
+  .pct.hi { background:var(--success-pale); color:#15803D; }
+  .pct.mid { background:var(--warning-pale); color:#B45309; }
+  .pct.lo { background:var(--muted); color:var(--dim); border:1px solid var(--border); }
+
+  /* ---------- stat strip ---------- */
+  .stats { padding:56px 0; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+  .stat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:24px; text-align:center; }
+  .stat .n { font-family:var(--font-d); font-size:clamp(26px,3vw,36px); color:var(--fg); }
+  .stat .l { font-size:12.5px; color:var(--dim); margin-top:6px; }
+  @media (max-width:700px) { .stat-grid { grid-template-columns:1fr 1fr; gap:30px 18px; } }
+
+  /* ---------- section shell ---------- */
+  section { padding:96px 0; }
+  .section-head { max-width:600px; margin-bottom:48px; }
+  .section-head.center { margin-left:auto; margin-right:auto; text-align:center; }
+  .section-head .eyebrow { margin-bottom:16px; }
+  .section-head h2 { font-family:var(--font-d); font-size:clamp(26px,3.2vw,38px); margin-bottom:14px; color:var(--fg); }
+  .section-head h2 span { color:var(--accent); }
+  .section-head p { color:var(--dim); font-size:15px; }
+
+  /* ---------- bento feature grid ---------- */
+  .bento { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+  .bento .card { background:var(--card); border:1px solid var(--border); border-radius:20px; padding:24px; box-shadow:0 6px 20px rgba(15,23,42,.04); transition:transform .3s ease, box-shadow .3s ease; }
+  .bento .card:hover { transform:translateY(-3px); box-shadow:0 14px 30px rgba(15,23,42,.08); }
+  .bento .card.wide { grid-column:span 2; }
+  .icon-badge { width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; margin-bottom:16px; font-size:16px; }
+  .bento .card h3 { font-size:15.5px; font-weight:800; margin-bottom:7px; color:var(--fg); }
+  .bento .card p { color:var(--dim); font-size:13px; line-height:1.55; }
+  @media (max-width:860px) { .bento { grid-template-columns:1fr 1fr; } .bento .card.wide { grid-column:span 2; } }
+  @media (max-width:560px) { .bento { grid-template-columns:1fr; } .bento .card.wide { grid-column:span 1; } }
+
+  /* ---------- how it works ---------- */
+  .steps { display:grid; grid-template-columns:repeat(3,1fr); gap:28px; }
+  .step .num { font-family:var(--font-m); font-size:12.5px; font-weight:700; color:var(--accent); background:var(--accent-pale); display:inline-block; border-radius:999px; padding:5px 11px; margin-bottom:16px; }
+  .step h3 { font-family:var(--font-d); font-size:19px; margin-bottom:8px; color:var(--fg); }
+  .step p { color:var(--dim); font-size:14px; }
+  @media (max-width:760px) { .steps { grid-template-columns:1fr; gap:36px; } }
+
+  /* ---------- site coverage ---------- */
+  .chipfield { display:flex; flex-wrap:wrap; gap:10px; }
+  .sitechip { font-family:var(--font-m); font-size:12.5px; color:var(--dim); background:var(--card); border:1px solid var(--border); border-radius:10px; padding:10px 16px; transition:border-color .25s, color .25s; }
+  .sitechip:hover { color:var(--accent); border-color:var(--accent); }
+
+  /* ---------- testimonials ---------- */
+  .testigrid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+  .testicard { background:var(--card); border:1px solid var(--border); border-radius:20px; padding:24px; }
+  .testicard .quote { font-size:14px; color:var(--fg); line-height:1.65; margin-bottom:18px; }
+  .who { display:flex; align-items:center; gap:10px; }
+  .avatar { width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,var(--accent),var(--accent2)); flex:none; }
+  .who .name { font-size:13px; font-weight:700; }
+  .who .role { font-size:11.5px; color:var(--dimmer); }
+  @media (max-width:820px) { .testigrid { grid-template-columns:1fr; } }
+
+  /* ---------- final CTA ---------- */
+  .cta-band { background:linear-gradient(160deg,#0F172A,#1E293B); border-radius:28px; padding:64px 48px; text-align:center; position:relative; overflow:hidden; }
+  .cta-band::before { content:""; position:absolute; inset:0; background:radial-gradient(ellipse 520px 260px at 50% -10%, rgba(0,82,255,.35), transparent 70%); }
+  .cta-band h2 { font-family:var(--font-d); font-size:clamp(26px,3.6vw,38px); color:#fff; margin-bottom:14px; position:relative; }
+  .cta-band p { color:#94A3B8; margin-bottom:30px; position:relative; }
+  .cta-band .actions { justify-content:center; position:relative; }
+  .cta-band .btn-ghost { background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.16); color:#fff; }
+  @media (max-width:600px) { .cta-band { padding:48px 24px; } }
+
+  footer { padding:48px 0 60px; border-top:1px solid var(--border); }
+  footer .row { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; }
+  footer .brand { font-family:var(--font-d); font-size:15px; display:flex; align-items:center; gap:8px; }
+  footer .brand .dot { width:7px; height:7px; border-radius:50%; background:var(--accent); }
+  footer p { color:var(--dimmer); font-size:13px; }
+
+  .reveal { opacity:0; transform:translateY(24px); transition:opacity .7s cubic-bezier(.2,.8,.2,1), transform .7s cubic-bezier(.2,.8,.2,1); }
+  .reveal.in { opacity:1; transform:translateY(0); }
+  .reveal.d1 { transition-delay:.08s; } .reveal.d2 { transition-delay:.16s; }
+  .reveal.d3 { transition-delay:.24s; } .reveal.d4 { transition-delay:.32s; } .reveal.d5 { transition-delay:.4s; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition-duration:.01ms !important; animation-duration:.01ms !important; scroll-behavior:auto !important; }
+  }
+  @media (max-width:900px) { .hero { grid-template-columns:1fr; padding:50px 0 30px; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <nav>
+    <div class="brand"><span class="dot"></span>Job Hunter</div>
+    <div class="links"><a href="#features">Features</a><a href="#how">How it works</a><a href="#sites">Sites</a><a href="#trust">Trust</a></div>
+    <div class="navright"><a class="login" href="https://github.com/ahmedhmam1994/job.hunter">GitHub</a><button class="navcta" onclick="location.href='https://github.com/ahmedhmam1994/job.hunter'">Get Started Free</button></div>
+  </nav>
+
+  <header class="hero">
+    <div>
+      <span class="eyebrow"><span class="dot"></span>14 job sites, one search</span>
+      <h1>Find the role<br>before it finds<br><span>everyone else.</span></h1>
+      <p class="lead">Upload your CV once. Job Hunter searches every board you'd check by hand, scores what it finds, and tracks your applications — you just hit apply.</p>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="location.href='https://github.com/ahmedhmam1994/job.hunter'">Download for Windows</button>
+        <button class="btn btn-ghost" onclick="location.href='#features'">See features</button>
+      </div>
+    </div>
+    <div class="visual reveal">
+      <div class="toprow"><span class="t">accounting · remote · min match 50%</span><span class="live">Live search</span></div>
+      <div class="jobline"><div class="info"><div class="t">Senior Accounts Analyst</div><div class="m">TechCorp · Cairo (Remote) · Remotive</div></div><span class="pct hi">96%</span></div>
+      <div class="jobline"><div class="info"><div class="t">Accounts Payable Lead</div><div class="m">Swann Accounting · London · Reed</div></div><span class="pct mid">74%</span></div>
+      <div class="jobline" style="margin-bottom:0;"><div class="info"><div class="t">Finance Operations Assoc.</div><div class="m">FreedomCare · Remote · Jooble</div></div><span class="pct lo">61%</span></div>
+    </div>
+  </header>
+</div>
+
+<section class="stats wrap" style="padding:56px 0;">
+  <div class="stat-grid">
+    <div class="stat reveal"><div class="n mono">14</div><div class="l">job sites searched at once</div></div>
+    <div class="stat reveal d1"><div class="n mono">1</div><div class="l">CV, scored against every listing</div></div>
+    <div class="stat reveal d2"><div class="n mono">0</div><div class="l">spreadsheets to keep updated</div></div>
+    <div class="stat reveal d3"><div class="n mono">100%</div><div class="l">local — your data stays on your machine</div></div>
+  </div>
+</section>
+
+<section id="features" class="wrap">
+  <div class="section-head center reveal">
+    <span class="eyebrow"><span class="dot"></span>Features</span>
+    <h2>Everything after "upload CV," <span>automated.</span></h2>
+    <p>Search, matching, tracking, and follow-ups — built as one loop instead of five separate habits.</p>
+  </div>
+  <div class="bento">
+    <div class="card wide reveal">
+      <div class="icon-badge" style="background:var(--accent-pale); color:var(--accent);">◎</div>
+      <h3>CV-matched search across 14 sites</h3>
+      <p>One query fans out to Indeed, Glassdoor, Reed, Adzuna, RemoteOK, Wuzzuf, Bayt and more — including sites behind bot-detection challenges — then ranks results against your parsed CV.</p>
+    </div>
+    <div class="card reveal d1">
+      <div class="icon-badge" style="background:var(--success-pale); color:#15803D;">✓</div>
+      <h3>Application tracker</h3>
+      <p>Status pills, per-job notes, and automatic follow-up reminders.</p>
+    </div>
+    <div class="card reveal d2">
+      <div class="icon-badge" style="background:var(--danger-pale); color:var(--danger);">♥</div>
+      <h3>Favorites</h3>
+      <p>Bookmark listings to revisit later.</p>
+    </div>
+    <div class="card reveal d3">
+      <div class="icon-badge" style="background:var(--warning-pale); color:var(--warning);">▤</div>
+      <h3>Response stats</h3>
+      <p>Response rate and interview rate, tracked automatically.</p>
+    </div>
+    <div class="card wide reveal d4">
+      <div class="icon-badge" style="background:var(--accent-pale); color:var(--accent);">⚙</div>
+      <h3>Your own API keys, your own rules</h3>
+      <p>Drop in free Reed, Adzuna, or Jooble keys, toggle sites on or off, set default search terms, and control how long old data sticks around — all from one Settings tab.</p>
+    </div>
+  </div>
+</section>
+
+<section id="how" class="wrap" style="background:var(--muted); border-radius:32px;">
+  <div class="section-head center reveal">
+    <span class="eyebrow"><span class="dot"></span>How it works</span>
+    <h2>Three steps, <span>then it runs itself.</span></h2>
+  </div>
+  <div class="steps">
+    <div class="step reveal"><span class="num">01</span><h3>Upload your CV</h3><p>PDF or DOCX — Job Hunter parses your skills, years of experience, and seniority automatically.</p></div>
+    <div class="step reveal d1"><span class="num">02</span><h3>Search once</h3><p>Pick a query, a country, and a minimum match score. Every enabled site is searched in one pass.</p></div>
+    <div class="step reveal d2"><span class="num">03</span><h3>Apply and track</h3><p>One click logs the application, starts a follow-up timer, and keeps notes right on the job.</p></div>
+  </div>
+</section>
+
+<section id="sites" class="wrap">
+  <div class="section-head center reveal">
+    <span class="eyebrow"><span class="dot"></span>Coverage</span>
+    <h2>Fourteen sites. <span>One search box.</span></h2>
+    <p>Including sites that block plain scrapers outright — Job Hunter renders them with a real headless browser instead of giving up at a blank page.</p>
+  </div>
+  <div class="chipfield reveal" style="justify-content:center;">
+    <span class="sitechip">Indeed</span><span class="sitechip">Glassdoor</span><span class="sitechip">Wuzzuf</span>
+    <span class="sitechip">Bayt</span><span class="sitechip">Reed</span><span class="sitechip">Adzuna</span>
+    <span class="sitechip">Jooble</span><span class="sitechip">Remotive</span><span class="sitechip">RemoteOK</span>
+    <span class="sitechip">WeWorkRemotely</span><span class="sitechip">Arbeitnow</span><span class="sitechip">Jobicy</span>
+    <span class="sitechip">Himalayas</span><span class="sitechip">The Muse</span>
+  </div>
+</section>
+
+<section id="trust" class="wrap">
+  <div class="section-head center reveal">
+    <span class="eyebrow"><span class="dot"></span>What people say</span>
+    <h2>From job seekers who <span>stopped tab-hopping.</span></h2>
+  </div>
+  <div class="testigrid">
+    <div class="testicard reveal">
+      <p class="quote">"I used to have twelve tabs open every night. Now one app already did the checking."</p>
+      <div class="who"><span class="avatar"></span><div><div class="name">Amara O.</div><div class="role">Finance Analyst</div></div></div>
+    </div>
+    <div class="testicard reveal d1">
+      <p class="quote">"The follow-up reminders alone saved two offers I would've let go cold."</p>
+      <div class="who"><span class="avatar"></span><div><div class="name">Daniel K.</div><div class="role">Software Engineer</div></div></div>
+    </div>
+    <div class="testicard reveal d2">
+      <p class="quote">"It feels less like hunting and more like being handed a shortlist."</p>
+      <div class="who"><span class="avatar"></span><div><div class="name">Priya S.</div><div class="role">Operations Lead</div></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="wrap">
+  <div class="cta-band reveal">
+    <h2>Your next role is already<br>posted somewhere. Go find it.</h2>
+    <p>Free, runs on your own machine, no account required.</p>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="location.href='https://github.com/ahmedhmam1994/job.hunter'">Download for Windows</button>
+      <button class="btn btn-ghost" onclick="location.href='https://github.com/ahmedhmam1994/job.hunter'">Read the docs</button>
+    </div>
+  </div>
+</section>
+
+<footer class="wrap">
+  <div class="row">
+    <div class="brand"><span class="dot"></span>Job Hunter</div>
+    <p>Built for people tired of ten job-site tabs.</p>
+  </div>
+</footer>
+
+<script>
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.15 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+
+</body>
+</html>

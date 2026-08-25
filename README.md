@@ -11,9 +11,20 @@ Run from source:
 
 ```
 pip install -r requirements.txt
-python -m playwright install chromium   # one-time: browser used to scrape Glassdoor/Indeed
+python -m playwright install chromium   # one-time: browser used to scrape Glassdoor/Indeed/Wuzzuf/Bayt
 python job_search_app.py
 ```
+
+Three sites (Reed, Adzuna, Jooble) need a free API key you register for
+yourself — the app can't create accounts on your behalf. Without a key,
+that site is skipped gracefully (a message is printed, not an error). Set
+these as environment variables before launching:
+
+| Site   | Env vars | Get a key at |
+|--------|----------|--------------|
+| Reed   | `REED_API_KEY` | reed.co.uk/developers |
+| Adzuna | `ADZUNA_APP_ID`, `ADZUNA_APP_KEY` | developer.adzuna.com |
+| Jooble | `JOOBLE_API_KEY` | jooble.org/api/about (untested — even an unauthenticated test request to Jooble's API hits a Cloudflare challenge, so this may not work even with a real key) |
 
 Or build a standalone Windows `.exe` (no Python install needed to run it):
 
@@ -25,7 +36,7 @@ Or build a standalone Windows `.exe` (no Python install needed to run it):
 - `job_search_app.py` — main desktop UI (Search / Tracker / Stats tabs)
 - `JobHunter.spec` — PyInstaller build config for the standalone `.exe`
 - `build_exe.ps1` — installs deps and runs PyInstaller
-- `scrapers.py` — fetches jobs from Wuzzuf, Glassdoor, Indeed, Remotive, WeWorkRemotely, RemoteOK
+- `scrapers.py` — fetches jobs from Wuzzuf, Glassdoor, Indeed, Bayt, Remotive, WeWorkRemotely, RemoteOK, Arbeitnow, Jobicy, Himalayas, The Muse, plus Reed/Adzuna/Jooble if their API keys are set
 - `cv_parser.py` — extracts skills and years of experience from a PDF/DOCX CV
 - `matcher.py` — fuzzy-matches scraped jobs against the parsed CV profile
 - `database.py` — SQLite storage for favorites, seen jobs, and applications
